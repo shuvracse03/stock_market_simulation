@@ -1,0 +1,5 @@
+appmap_dir: tmp/appmap
+language: python
+name: stock_market_app
+packages:
+- path: stock_market_app
