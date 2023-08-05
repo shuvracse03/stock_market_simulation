@@ -65,12 +65,21 @@ def read_stocks(db: Session = Depends(get_db)):
 def get_stocks_by_ticker(ticker: str, db: Session = Depends(get_db)):
     db_stocks = crud.get_stocks_by_ticker(db, ticker)
     return db_stocks 
-    
-@app.post("/transactions/", response_model=schemas.Transaction)
-def post_transaction(transaction: schemas.TransactionCreate, db: Session = Depends(get_db)):
-    db_stock = crud.create_transaction(db, transaction=transaction)
-    return db_stock
 
+@app.post("/transactions/")
+def post_transaction(data: dict):
+    create_transaction_task.delay(data)
+    return {"msg": "Transaction started"}
+    
+'''    
+@app.post("/transactions/")
+def post_transaction(transaction: schemas.TransactionCreate, db: Session = Depends(get_db)):
+    create_transaction_task.delay(db, transaction)
+    #crud.create_transaction(db, transaction=transaction)
+    return {"msg": "Transaction started"}
+    #db_stock = crud.create_transaction(db, transaction=transaction)
+    #return db_stock
+'''
   
 
 
