@@ -22,5 +22,9 @@ services:
        - db 
        
   
+  redis:
+    image: redis
+       
+  
   
   

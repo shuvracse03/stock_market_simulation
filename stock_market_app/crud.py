@@ -3,11 +3,36 @@ from fastapi import  HTTPException
 from datetime import datetime
 from . import models, schemas
 from sqlalchemy import and_
+import redis
+import json
+from pydantic.tools import parse_obj_as
 
-
-
+redis_client = redis.Redis(
+    host='redis',
+    port=6379,
+    charset="utf-8",
+    decode_responses=True
+    )
+    
+CACHE_TIMEOUT=120
 def get_user_by_username(db: Session, username: str):
-    return db.query(models.User).filter(models.User.username == username).first()
+    #redis_client.set(username, "value2")
+    # Try fetching user data from Redis cache
+    cached_data = redis_client.get(username)
+    if cached_data:
+       print('found in cache')
+       user_dict = json.loads(cached_data)
+       user = parse_obj_as(schemas.User, user_dict)
+       return user
+    else:
+       print('Cache missed. Hit database')
+       result=  db.query(models.User).filter(models.User.username == username).first()
+       pyd_model= schemas.User(user_id= result.user_id, username=result.username, balance=result.balance, transactions=result.transactions)
+       
+       serialized_data = json.dumps(pyd_model.dict())
+       redis_client.setex(username, CACHE_TIMEOUT, serialized_data)
+       
+       return result
 
 
 
@@ -33,13 +58,9 @@ def create_stock(db: Session, stock: schemas.StockDataCreate):
        db.commit()
        db.refresh(db_stock)
        return db_stock
-    else:
-      
-       print('in else')
+    else:     
        record = result.one()
-       #record.update({'open_price':stock.open_price,'close_price':stock.close_price, 'high': stock.high, 'low': stock.low,\
-       # 'volume': stock.volume,'timestamp': stock.timestamp})
-       #print('d0')
+ 
        record.open_price =stock.open_price
        record.close_price = stock.close_price
        record.high = stock.high
@@ -49,7 +70,6 @@ def create_stock(db: Session, stock: schemas.StockDataCreate):
        record.current_price = stock.current_price
        record.available_quantity = stock.available_quantity
        db.commit()
-       print('db commited')
        
        return record
     
