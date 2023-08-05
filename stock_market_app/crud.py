@@ -6,6 +6,7 @@ from sqlalchemy import and_
 import redis
 import json
 from pydantic.tools import parse_obj_as
+from pydantic.json import pydantic_encoder
 
 redis_client = redis.Redis(
     host='redis',
@@ -16,8 +17,6 @@ redis_client = redis.Redis(
     
 CACHE_TIMEOUT=120
 def get_user_by_username(db: Session, username: str):
-    #redis_client.set(username, "value2")
-    # Try fetching user data from Redis cache
     cached_data = redis_client.get(username)
     if cached_data:
        print('found in cache')
@@ -77,10 +76,49 @@ def create_stock(db: Session, stock: schemas.StockDataCreate):
     
     
 def get_stocks(db: Session):
-    return db.query(models.StockData).all()
-    
+    cache_key = 'stocks'
+    cached_data = redis_client.get(cache_key)
+    if cached_data:
+       print('found in cache')
+       stock_dict = json.loads(cached_data)
+       print(stock_dict)
+       stocks = parse_obj_as(list[schemas.StockData], stock_dict)
+       return stocks
+    else:
+       print('missed cache')
+       result =  db.query(models.StockData).all()
+       pyd_models=[]
+       for d in result:
+           pyd_model= schemas.StockData(id = d.id, ticker=d.ticker, open_price=d.open_price,\
+           close_price=d.close_price, high=d.high, low=d.low, volume=d.volume,\
+           available_quantity=d.available_quantity, current_price=d.current_price, timestamp=d.timestamp)
+           pyd_models.append(pyd_model)
+       
+       serialized_data = json.dumps(pyd_models, default=pydantic_encoder)#datetime conversion needs str
+       print('serialized data')
+       print(serialized_data)
+       redis_client.setex(cache_key, CACHE_TIMEOUT, serialized_data)
+       return result    
+         
 def get_stocks_by_ticker(db: Session, ticker: str):
-    return db.query(models.StockData).filter(models.StockData.ticker == ticker).first()
+    cache_key = 'stock-'+ticker
+    cached_data = redis_client.get(cache_key)
+    if cached_data:
+       print('found in cache')
+       stock_ticker_dict = json.loads(cached_data)
+       stock_ticker = parse_obj_as(schemas.StockData, stock_ticker_dict)
+       return stock_ticker
+    else:  
+       print('cache miss')
+       result = db.query(models.StockData).filter(models.StockData.ticker == ticker).first()
+       pyd_model= schemas.StockData(id = result.id, ticker=result.ticker, open_price=result.open_price,\
+        close_price=result.close_price, high=result.high, low=result.low, volume=result.volume,\
+         available_quantity=result.available_quantity, current_price=result.current_price, timestamp=result.timestamp)
+       
+       serialized_data = json.dumps(pyd_model.dict(), default=str)#datetime conversion needs str
+
+       redis_client.setex(cache_key, CACHE_TIMEOUT, serialized_data)
+       return result
     
 def get_transactions(db: Session, user_id: str):
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
