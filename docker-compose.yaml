@@ -24,6 +24,32 @@ services:
   
   redis:
     image: redis
+    expose:
+      - 6379
+      
+  worker:
+        build:
+          context: .
+        container_name: worsms
+        command: celery -A stock_market_app.tasks worker -l info -f /code/celery.log 
+        environment:
+            - BROKER_URL=redis://redis:6379
+        depends_on:
+            - redis
+            - web  
+            
+  flower:  
+     image: mher/flower
+     environment:
+         - CELERY_BROKER_URL=redis://redis:6379/0
+         - FLOWER_PORT=5555
+     ports:  
+        - 5555:5555
+     depends_on:
+        - redis
+  
+            
+
        
   
   

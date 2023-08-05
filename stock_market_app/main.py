@@ -6,6 +6,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
 from . import crud, models, schemas
+from .tasks import *
 from .database import SessionLocal, engine
 
 models.Base.metadata.create_all(bind=engine)
@@ -93,3 +94,10 @@ def read_root():
 def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
 
+@app.post("/test-task")
+def test_celery():
+    print('before task start...')
+    add.delay()
+    
+    return {"msg": "Test celery"}
+    
