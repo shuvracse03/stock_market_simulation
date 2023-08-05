@@ -27,16 +27,27 @@ services:
     expose:
       - 6379
       
-  worker:
+  worker1:
         build:
           context: .
-        container_name: worsms
-        command: celery -A stock_market_app.tasks worker -l info -f /code/celery.log 
+        container_name: worsms1
+        command: celery -A stock_market_app.tasks worker -l info --concurrency=8 -n worker1@%h
         environment:
             - BROKER_URL=redis://redis:6379
         depends_on:
             - redis
             - web  
+            
+  worker2:
+        build:
+          context: .
+        container_name: worsms2
+        command: celery -A stock_market_app.tasks worker -l info --concurrency=8 -n worker2@%h
+        environment:
+            - BROKER_URL=redis://redis:6379
+        depends_on:
+            - redis
+            - web 
             
   flower:  
      image: mher/flower
