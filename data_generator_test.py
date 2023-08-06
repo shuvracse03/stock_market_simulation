@@ -28,7 +28,7 @@ def initialize_tickers():
    return ticker_dict
    
 def main():
-
+   '''
    ticker_dict = initialize_tickers()
    i=0
    url = 'http://127.0.0.1:8001/stocks/'
@@ -51,7 +51,7 @@ def main():
     
      i+=1
  
-   #curl -d '{"ticker":"YAHOO","open_price":"22","close_price":"30","high":"31","low":"19","volume":"0","current_price":"90","available_quantity":"10", "timestamp":"2022-12-28 08:26:49.219717"}' -H "Content-Type: application/json" -X POST http://127.0.0.1:8001/stocks/
+   '''
      
 if __name__==main():
    main()    

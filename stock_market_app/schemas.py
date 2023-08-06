@@ -14,7 +14,7 @@ class UserStockQuantityCreate(UserStockQuantityBase):
     
 class StockDataBase(BaseModel):
     ticker: str
-    open_price: str 
+    open_price: float
     close_price: float
     high: float
     low: float

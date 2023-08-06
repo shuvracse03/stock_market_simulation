@@ -49,6 +49,28 @@ services:
             - redis
             - web 
             
+  worker3:
+        build:
+          context: .
+        container_name: worsms3
+        command: celery -A stock_market_app.tasks worker -l info --concurrency=8 -n worker3@%h
+        environment:
+            - BROKER_URL=redis://redis:6379
+        depends_on:
+            - redis
+            - web
+            
+  worker4:
+        build:
+          context: .
+        container_name: worsms4
+        command: celery -A stock_market_app.tasks worker -l info --concurrency=8 -n worker4@%h
+        environment:
+            - BROKER_URL=redis://redis:6379
+        depends_on:
+            - redis
+            - web
+            
   flower:  
      image: mher/flower
      environment:
@@ -58,6 +80,29 @@ services:
         - 5555:5555
      depends_on:
         - redis
+        
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+  
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1      
+  
   
             
 

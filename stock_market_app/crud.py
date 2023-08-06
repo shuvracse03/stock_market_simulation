@@ -8,6 +8,9 @@ import redis
 import json
 from pydantic.tools import parse_obj_as
 from pydantic.json import pydantic_encoder
+from pydantic import BaseModel, ValidationError
+from fastapi.responses import Response
+from starlette.status import HTTP_204_NO_CONTENT
 
 redis_client = redis.Redis(
     host='redis',
@@ -17,6 +20,21 @@ redis_client = redis.Redis(
     )
     
 CACHE_TIMEOUT=120
+def userid_exists(db: Session, user_id: str):
+    
+    result=  db.query(models.User).filter(models.User.user_id == user_id).first()
+    if result is not None:
+       return True
+    return False
+    
+def username_exists(db: Session, username: str):
+    
+    result=  db.query(models.User).filter(models.User.username == username).first()
+    if result is not None:
+       return True
+    return False
+    
+       
 def get_user_by_username(db: Session, username: str):
     cached_data = redis_client.get(username)
     if cached_data:
@@ -27,10 +45,10 @@ def get_user_by_username(db: Session, username: str):
     else:
        print('Cache missed. Hit database')
        result=  db.query(models.User).filter(models.User.username == username).first()
-       pyd_model= schemas.User(user_id= result.user_id, username=result.username, balance=result.balance, transactions=result.transactions)
-       
-       serialized_data = json.dumps(pyd_model.dict())
-       redis_client.setex(username, CACHE_TIMEOUT, serialized_data)
+       if result is not None:
+          pyd_model= schemas.User(user_id= result.user_id, username=result.username, balance=result.balance, transactions=result.transactions)
+          serialized_data = json.dumps(pyd_model.dict())
+          redis_client.setex(username, CACHE_TIMEOUT, serialized_data)
        
        return result
 
@@ -50,6 +68,12 @@ def create_user(db: Session, user: schemas.UserCreate):
 def create_stock(db: Session, stock: schemas.StockDataCreate):
     #create stock
     result = db.query(models.StockData).filter(models.StockData.ticker == stock.ticker)
+    try:
+       schemas.StockDataCreate(ticker=stock.ticker, open_price= stock.open_price, close_price=stock.close_price,\
+     high=stock.high, low=stock.low, volume=stock.volume, timestamp= stock.timestamp, available_quantity= stock.available_quantity, current_price=stock.current_price)
+    except ValidationError as e:
+        return {"msg": e}
+    
     if result.first() is None:
        
        db_stock = models.StockData(ticker=stock.ticker, open_price= stock.open_price, close_price=stock.close_price,\
@@ -57,7 +81,7 @@ def create_stock(db: Session, stock: schemas.StockDataCreate):
        db.add(db_stock)
        db.commit()
        db.refresh(db_stock)
-       return db_stock
+       return {"msg": "SUCCESS"}
     else:     
        record = result.one()
  
@@ -71,7 +95,7 @@ def create_stock(db: Session, stock: schemas.StockDataCreate):
        #record.available_quantity = stock.available_quantity
        db.commit()
        
-       return record
+       return {"msg": "SUCCESS"}
     
     
     
@@ -112,15 +136,18 @@ def get_stocks_by_ticker(db: Session, ticker: str):
     else:  
        print('cache miss')
        result = db.query(models.StockData).filter(models.StockData.ticker == ticker).first()
-       pyd_model= schemas.StockData(id = result.id, ticker=result.ticker, open_price=result.open_price,\
+       if result is not None:
+          pyd_model= schemas.StockData(id = result.id, ticker=result.ticker, open_price=result.open_price,\
         close_price=result.close_price, high=result.high, low=result.low, volume=result.volume,\
          available_quantity=result.available_quantity, current_price=result.current_price, timestamp=result.timestamp)
        
-       serialized_data = json.dumps(pyd_model.dict(), default=str)#datetime conversion needs str
+          serialized_data = json.dumps(pyd_model.dict(), default=str)#datetime conversion needs str
 
-       redis_client.setex(cache_key, CACHE_TIMEOUT, serialized_data)
-       return result
-    
+          redis_client.setex(cache_key, CACHE_TIMEOUT, serialized_data)
+          return result
+       else:
+           return Response(status_code=HTTP_204_NO_CONTENT)
+      
 def get_transactions(db: Session, user_id: str):
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
     if user is None:
