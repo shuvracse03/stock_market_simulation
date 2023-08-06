@@ -65,10 +65,10 @@ def create_stock(db: Session, stock: schemas.StockDataCreate):
        record.close_price = stock.close_price
        record.high = stock.high
        record.low = stock.low
-       record.volume = stock.volume
+       #record.volume = stock.volume
        record.timestamp =stock.timestamp
        record.current_price = stock.current_price
-       record.available_quantity = stock.available_quantity
+       #record.available_quantity = stock.available_quantity
        db.commit()
        
        return record

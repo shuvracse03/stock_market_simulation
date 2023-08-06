@@ -31,7 +31,7 @@ services:
         build:
           context: .
         container_name: worsms1
-        command: celery -A stock_market_app.tasks worker -l info --concurrency=8 -n worker1@%h
+        command: celery -A stock_market_app.tasks worker -l info --concurrency=8 -n worker1@%h 
         environment:
             - BROKER_URL=redis://redis:6379
         depends_on:
