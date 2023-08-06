@@ -170,7 +170,7 @@ def test_get_ticker_stock1(test_db):
         api_get
     )
     data = response.json()
-    print(data)
+    
     assert data['ticker']=='GOOGLE'
    
 #Attempt to get stock for a ticker
@@ -190,45 +190,7 @@ def test_get_ticker_stock2(test_db):
     data = response
     assert response.status_code == 204
     
-    
-    
-#test single transaction
-def test_transaction1():
-    db = get_db()
-    #add user
-    api='/users/'
-    data = {"username":"shuvra3","user_id":"shuvra3","balance":"50000"}
-    
-    response = client.post(
-        api,
-        json=data
-    )
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    data1 = {"ticker":"GOOGLE","open_price":"88","close_price":"91","high":"101","low":"81","volume":"0","current_price":"200","available_quantity":"2000", "timestamp":current_time}
-    #create stock
-    api='/stocks/'
-    response = client.post(
-        api,
-        json=data1
-    )
-    stock = db.query(models.StockData).filter(models.StockData.ticker == 'GOOGLE').first()
-    print('ticker:')
-    print(stock.ticker)
-    
-    api='/transactions/'
-    data = {"user_id":"shuvra3","ticker":"GOOGLE","transaction_type":"BUY","transaction_volume":"2"}
-    response = client.post(
-        api,
-        json=data
-    )
-    
-    user = db.query(models.User).filter(models.User.username == 'shuvra3').first()
-    print(user.username)
-    print(user.balance)
-    transaction = db.query(models.Transaction).filter().first()
-    print(transaction.transaction_volume)
-    assert 1==1
-    
+   
     
     
 
