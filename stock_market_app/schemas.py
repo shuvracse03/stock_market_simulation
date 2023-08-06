@@ -1,7 +1,8 @@
 from pydantic import BaseModel
-         
+
 
 from datetime import date, datetime, time, timedelta
+
 
 class UserStockQuantityBase(BaseModel):
     ticker: str
@@ -11,7 +12,8 @@ class UserStockQuantityBase(BaseModel):
 
 class UserStockQuantityCreate(UserStockQuantityBase):
     user_id: str
-    
+
+
 class StockDataBase(BaseModel):
     ticker: str
     open_price: float
@@ -30,17 +32,17 @@ class StockDataCreate(StockDataBase):
 
 class StockData(StockDataBase):
     id: int
+
     class Config:
         orm_mode = True
-        
-        
+
+
 class TransactionBase(BaseModel):
-    
     ticker: str
-    transaction_type: str 
+    transaction_type: str
     transaction_volume: float
-    #transaction_price: float
-    #timestamp: datetime
+    # transaction_price: float
+    # timestamp: datetime
 
 
 class TransactionCreate(TransactionBase):
@@ -52,23 +54,23 @@ class Transaction(TransactionBase):
     owner_id: int
     transaction_price: float
     timestamp: datetime
+
     class Config:
         orm_mode = True
-        
+
 
 class UserBase(BaseModel):
     user_id: str
     username: str
     balance: float
-    
+
 
 class UserCreate(UserBase):
     pass
-    
+
+
 class User(UserBase):
     transactions: list[Transaction] = []
 
     class Config:
         orm_mode = True
-        
-
