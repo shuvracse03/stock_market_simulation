@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from .main import *
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from .database import SessionLocal, engine
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -112,7 +112,7 @@ def test_transaction_sell():
         json=data
     )
     
-    time.sleep(0.5)
+    time.sleep(3.0)
     api='/transactions/'
     data = {"user_id":"shuvra3","ticker":"GOOGLE","transaction_type":"SELL","transaction_volume":"1"}
     response = client.post(
@@ -131,5 +131,43 @@ def test_transaction_sell():
     user_stock = db.query(models.UserStockQuantity).filter(models.UserStockQuantity.user == user).first()
 
     assert (user.balance == 49800) and ( stock.available_quantity ==1999)
-
+    
+    
+def test_transaction_by_userid():
+    user = db.query(models.User).filter(models.User.username == 'shuvra3').first()
+    api='/transactions/shuvra3'
+    response = client.get(
+        api,
+    
+    )
+    assert len(response.json())==2
+    
    
+def test_transaction_by_timestamp():
+    user = db.query(models.User).filter(models.User.username == 'shuvra3').first()
+    transactions = db.query(models.Transaction).filter(models.Transaction.user == user).all()
+    times = []
+    for transaction in transactions:
+       times.append(transaction.timestamp)
+    min_time = min(times)
+    middle_time = min_time + timedelta(seconds=1)
+    current_time = datetime.now()
+    start_time = middle_time.strftime('%Y-%m-%dT%H:%M:%S')
+    end_time = current_time.strftime('%Y-%m-%dT%H:%M:%S')
+    print('times:')
+    print(times)
+    print('middle time:')
+    print(middle_time)
+    print('end time:')
+    print(end_time)
+    
+    api=f'/transactions/shuvra3/{start_time}/{end_time}'
+    response = client.get(
+        api,
+    
+    )
+    print(response.json())
+    assert len(response.json())==1
+    
+     
+    
